@@ -6,6 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface CarRepository extends JpaRepository<Car, Long> {
-    List<Car> findByApprovedTrueAndSoldFalse();
-    List<Car> findByApprovedFalseAndSoldFalse();
+
+    // Cars waiting for admin approval
+    List<Car> findByApprovedFalse();
+
+    // Cars visible to users
+    List<Car> findByApprovedTrue();
 }

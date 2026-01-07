@@ -1,38 +1,30 @@
 package com.example.carrental.security;
 
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private final Key key;
-    private final long expirationMs = 1000L * 60 * 60 * 24 * 7; // 7 days
 
-    public JwtUtil(@Value("${app.jwt.secret:defaultsecret1234567890}") String secret) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
-    }
+    private static final String SECRET =
+            "THIS_IS_A_SUPER_SECURE_32_CHAR_SECRET_KEY_123456";
 
-    public String generateToken(String subject) {
-        Date now = new Date();
+    public String generateToken(String email, String role) {
         return Jwts.builder()
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + expirationMs))
-                .signWith(key, SignatureAlgorithm.HS256)
+                .setSubject(email)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
+                .signWith(SignatureAlgorithm.HS256, SECRET)
                 .compact();
     }
 
-    public String validateAndGetSubject(String token) {
-        try {
-            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
-            return claims.getBody().getSubject();
-        } catch (JwtException e) {
-            return null;
-        }
+    public Claims validate(String token) {
+        return Jwts.parser()
+                .setSigningKey(SECRET)
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

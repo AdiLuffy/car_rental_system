@@ -1,8 +1,12 @@
 com/example/carrental/controller/UploadController.class
-com/example/carrental/security/PasswordConfig.class
 com/example/carrental/controller/MessageController.class
+com/example/carrental/config/CorsConfig.class
+com/example/carrental/security/JwtAuthenticationFilter.class
+com/example/carrental/dto/CarDetailsDto.class
+com/example/carrental/config/StaticConfig.class
 com/example/carrental/controller/AuthController.class
 com/example/carrental/controller/AdminController.class
+com/example/carrental/dto/RegisterRequest.class
 com/example/carrental/security/JwtUtil.class
 com/example/carrental/model/User.class
 com/example/carrental/repository/UserRepository.class
@@ -10,9 +14,8 @@ com/example/carrental/model/Message.class
 com/example/carrental/security/JwtFilter.class
 com/example/carrental/controller/CarController.class
 com/example/carrental/model/Car.class
+com/example/carrental/dto/LoginRequest.class
 com/example/carrental/repository/MessageRepository.class
 com/example/carrental/repository/CarRepository.class
 com/example/carrental/Application.class
 com/example/carrental/security/SecurityConfig.class
-com/example/carrental/CorsConfig.class
-com/example/carrental/StaticConfig.class
