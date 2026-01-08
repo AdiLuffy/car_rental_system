@@ -1,23 +1,81 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Sell from "./pages/Sell";
 import CarDetails from "./pages/CarDetails";
 import Admin from "./pages/Admin";
-import "./styles.css";
+
+// 🔐 Admin Route Guard
+const AdminRoute = ({ children }) => {
+  const role = localStorage.getItem("role");
+  return role === "ADMIN" ? children : <Navigate to="/home" />;
+};
+
+// 🔐 Auth Guard
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/login" />;
+};
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+
+        {/* Default */}
+        <Route
+          path="/"
+          element={
+            localStorage.getItem("token")
+              ? <Navigate to="/home" />
+              : <Navigate to="/login" />
+          }
+        />
+
+        {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/sell" element={<Sell />} />
-        <Route path="/car/:id" element={<CarDetails />} />
-        <Route path="/admin" element={<Admin />} />
+
+        {/* User */}
+        <Route
+          path="/home"
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/sell"
+          element={
+            <PrivateRoute>
+              <Sell />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/car/:id"
+          element={
+            <PrivateRoute>
+              <CarDetails />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Admin */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );

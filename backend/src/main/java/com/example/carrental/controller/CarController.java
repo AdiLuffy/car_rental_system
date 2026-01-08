@@ -2,12 +2,19 @@ package com.example.carrental.controller;
 
 import com.example.carrental.model.Car;
 import com.example.carrental.repository.CarRepository;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/cars")
@@ -15,40 +22,41 @@ import java.util.*;
 public class CarController {
 
     private final CarRepository carRepository;
+
+    // ✅ FIX: uploadDir was missing
     private final Path uploadDir = Paths.get("uploads");
 
     public CarController(CarRepository carRepository) {
         this.carRepository = carRepository;
     }
 
-    // Get all approved cars
+    // ---------------- GET ALL APPROVED + NOT SOLD CARS ----------------
     @GetMapping
     public List<Car> getAllCars() {
-        return carRepository.findByApprovedTrue();
+        return carRepository.findByApprovedTrueAndSoldFalse();
     }
 
-    // Get car by ID (only approved cars visible to users)
+    // ---------------- GET CAR BY ID ----------------
     @GetMapping("/{id}")
     public ResponseEntity<Car> getCarById(@PathVariable Long id) {
-        Car car = carRepository.findById(id).orElse(null);
-        if (car == null) {
-            return ResponseEntity.notFound().build();
-        }
-        // Only return approved cars to regular users
-        if (!car.isApproved()) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(car);
+        return carRepository.findById(id)
+                .filter(car -> car.isApproved() && !car.isSold())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
+    // ---------------- CREATE CAR ----------------
     @PostMapping(consumes = "multipart/form-data")
-    public ResponseEntity<?> createCar(
+    public ResponseEntity<Car> createCar(
+
             @RequestParam String title,
             @RequestParam int price,
             @RequestParam String location,
             @RequestParam String transmission,
+            @RequestParam int engineCc,
 
-            // ✅ BOOLEAN FIELDS (VERY IMPORTANT)
+            @RequestParam(defaultValue = "0") int kmDriven,
+
             @RequestParam(defaultValue = "false") boolean spareKey,
             @RequestParam(defaultValue = "false") boolean noAccident,
             @RequestParam(defaultValue = "false") boolean noRepaint,
@@ -56,7 +64,6 @@ public class CarController {
             @RequestParam(defaultValue = "false") boolean noWaterDamage,
             @RequestParam(defaultValue = "false") boolean noOdometerTampering,
 
-            // ✅ IMAGES
             @RequestParam(required = false) MultipartFile[] exteriorImages,
             @RequestParam(required = false) MultipartFile[] interiorImages
     ) {
@@ -70,6 +77,8 @@ public class CarController {
             car.setPrice(price);
             car.setLocation(location);
             car.setTransmission(transmission);
+            car.setEngineCc(engineCc);
+            car.setKmDriven(kmDriven);
 
             car.setSpareKey(spareKey);
             car.setNoAccident(noAccident);
@@ -78,25 +87,21 @@ public class CarController {
             car.setNoWaterDamage(noWaterDamage);
             car.setNoOdometerTampering(noOdometerTampering);
 
-            car.setApproved(false);
-            car.setSold(false);
-            car.setKmDriven(0); // Default value
+            car.setApproved(false); // admin approval
+            car.setSold(false);     // not sold initially
 
-            List<String> extImages = saveImages(exteriorImages);
-            List<String> intImages = saveImages(interiorImages);
-            
-            // Ensure lists are not null
-            car.setExteriorImages(extImages != null ? extImages : new ArrayList<>());
-            car.setInteriorImages(intImages != null ? intImages : new ArrayList<>());
+            car.setExteriorImages(saveImages(exteriorImages));
+            car.setInteriorImages(saveImages(interiorImages));
 
-            Car savedCar = carRepository.save(car);
-            return ResponseEntity.ok(savedCar);
+            return ResponseEntity.ok(carRepository.save(car));
+
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to create car: " + e.getMessage()));
+            return ResponseEntity.internalServerError().build();
         }
     }
 
+    // ---------------- IMAGE SAVE ----------------
     private List<String> saveImages(MultipartFile[] files) throws Exception {
         List<String> names = new ArrayList<>();
 

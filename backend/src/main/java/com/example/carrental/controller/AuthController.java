@@ -1,11 +1,10 @@
 package com.example.carrental.controller;
 
-import com.example.carrental.dto.LoginRequest;
-import com.example.carrental.dto.RegisterRequest;
+import com.example.carrental.model.Role;
 import com.example.carrental.model.User;
 import com.example.carrental.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -15,50 +14,54 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final UserRepository userRepo;
+    private final PasswordEncoder encoder;
 
-    public AuthController(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public AuthController(UserRepository userRepo, PasswordEncoder encoder) {
+        this.userRepo = userRepo;
+        this.encoder = encoder;
     }
 
-    // ================= REGISTER =================
-    @PostMapping(value = "/register", consumes = "application/json")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    // ✅ REGISTER
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody User user) {
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("Email already exists");
+        String email = user.getEmail().toLowerCase();
+
+        if (userRepo.existsByEmail(email)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Email already exists"));
         }
 
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("USER");
+        user.setEmail(email);
+        user.setPassword(encoder.encode(user.getPassword()));
+        user.setRole(Role.USER); // ✅ ENUM FIX
 
-        userRepository.save(user);
-        return ResponseEntity.ok("User registered successfully");
+        userRepo.save(user);
+        return ResponseEntity.ok(Map.of("message", "Registered successfully"));
     }
 
-    // ================= LOGIN =================
-    @PostMapping(value = "/login", consumes = "application/json")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    // ✅ LOGIN
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody User req) {
 
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        User user = userRepo.findByEmail(req.getEmail().toLowerCase())
+                .orElse(null);
 
         if (user == null) {
-            return ResponseEntity.status(401).body("Invalid email or password");
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Invalid email"));
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(401).body("Invalid email or password");
+        if (!encoder.matches(req.getPassword(), user.getPassword())) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Invalid password"));
         }
 
-        // 🔥 SEND ROLE TO FRONTEND
-        return ResponseEntity.ok(
-            Map.of(
-                "message", "Login successful",
-                "role", user.getRole()
-            )
-        );
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "email", user.getEmail(),
+                "role", user.getRole() // USER / ADMIN
+        ));
     }
 }

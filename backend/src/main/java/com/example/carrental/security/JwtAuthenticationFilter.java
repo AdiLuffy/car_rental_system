@@ -20,6 +20,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+
+        // ✅ ALLOW IMAGES WITHOUT AUTH
+        if (path.startsWith("/uploads/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 🔹 FOR NOW: LET EVERYTHING ELSE PASS
+        // (You are not using JWT yet)
         filterChain.doFilter(request, response);
     }
 }

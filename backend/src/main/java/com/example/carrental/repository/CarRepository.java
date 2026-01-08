@@ -7,9 +7,9 @@ import java.util.List;
 
 public interface CarRepository extends JpaRepository<Car, Long> {
 
-    // Cars waiting for admin approval
-    List<Car> findByApprovedFalse();
+    // ✅ For public listing (Buy Used Cars)
+    List<Car> findByApprovedTrueAndSoldFalse();
 
-    // Cars visible to users
-    List<Car> findByApprovedTrue();
+    // 🔴 For Admin → Pending approval
+    List<Car> findByApprovedFalse();
 }
